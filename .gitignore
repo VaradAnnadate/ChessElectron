@@ -16,3 +16,7 @@ pnpm-debug.log*
 
 # OS files
 .DS_Store
+
+# Private chat logs
+chat.md
+chat.txt
