@@ -127,3 +127,23 @@ export function movePairs(history) {
   }
   return pairs;
 }
+
+export function getGameAtPly(history, ply) {
+  const replay = new Chess();
+  const verboseMoves = [];
+  const limit = Math.min(ply, history.length);
+  for (let i = 0; i < limit; i += 1) {
+    try {
+      const move = replay.move(history[i]);
+      if (move) verboseMoves.push(move);
+    } catch {
+      break;
+    }
+  }
+  const last = verboseMoves[verboseMoves.length - 1];
+  return {
+    game: replay,
+    lastMove: last ? { from: last.from, to: last.to } : null,
+  };
+}
+

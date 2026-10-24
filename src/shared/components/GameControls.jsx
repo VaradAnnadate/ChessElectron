@@ -1,4 +1,13 @@
-export default function GameControls({ onNewGame, onUndo, onFlip, onResign, canUndo, canResign }) {
+export default function GameControls({
+  onNewGame,
+  onUndo,
+  onFlip,
+  onResign,
+  onCopyFen,
+  onCopyPgn,
+  canUndo,
+  canResign,
+}) {
   return (
     <div className="controls">
       <button type="button" className="btn" onClick={onNewGame} title="New game (N)">
@@ -12,6 +21,12 @@ export default function GameControls({ onNewGame, onUndo, onFlip, onResign, canU
       </button>
       <button type="button" className="btn btn--danger" onClick={onResign} disabled={!canResign}>
         Resign
+      </button>
+      <button type="button" className="btn" onClick={onCopyFen} title="Copy current position in FEN notation">
+        Copy FEN
+      </button>
+      <button type="button" className="btn" onClick={onCopyPgn} title="Copy full game notation in PGN format">
+        Copy PGN
       </button>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Board from '../../shared/components/Board.jsx';
 import Clock from '../../shared/components/Clock.jsx';
 import GameControls from '../../shared/components/GameControls.jsx';
@@ -22,6 +22,7 @@ import {
 import {
   capturedPieces,
   describeStatus,
+  getGameAtPly,
   isPromotionMove,
   materialAdvantage,
 } from '../../shared/chess/game.js';
@@ -38,6 +39,8 @@ export default function GameScreen({ config, onExit }) {
   const [ended, setEnded] = useState(null);
   const [thinking, setThinking] = useState(false);
   const [soundOn, setSoundOn] = useState(isSoundEnabled);
+  const [viewingPly, setViewingPly] = useState(null);
+  const [toast, setToast] = useState(null);
   const searchToken = useRef(0);
 
   const status = ended ? { ...boardStatus, over: true, ...ended } : boardStatus;
@@ -45,6 +48,24 @@ export default function GameScreen({ config, onExit }) {
   const advantage = materialAdvantage(game);
   const moveCount = game.history().length;
   const computerToMove = isComputer && !status.over && game.turn() !== playerColor;
+
+  const effectivePly = viewingPly !== null ? viewingPly : moveCount;
+  const isReviewing = viewingPly !== null && viewingPly < moveCount;
+
+  const preview = useMemo(() => {
+    if (!isReviewing) return null;
+    return getGameAtPly(game.history(), effectivePly);
+  }, [game, isReviewing, effectivePly]);
+
+  const activeBoardGame = preview ? preview.game : game;
+  const activeBoardLastMove = preview ? preview.lastMove : lastMove;
+
+  const showToast = (message) => {
+    setToast(message);
+    setTimeout(() => {
+      setToast((prev) => (prev === message ? null : prev));
+    }, 2200);
+  };
 
   const handleGameOverSound = (winner) => {
     playGameOverSound(isComputer ? winner === playerColor : true);
@@ -61,6 +82,7 @@ export default function GameScreen({ config, onExit }) {
   });
 
   const applyMove = (move) => {
+    setViewingPly(null);
     const res = makeMove(move);
     if (res) {
       if (res.isGameOver) {
@@ -113,11 +135,17 @@ export default function GameScreen({ config, onExit }) {
     clock.reset();
     setEnded(null);
     setPendingPromotion(null);
+    setViewingPly(null);
   };
 
   const undoCount = isComputer ? (game.turn() === playerColor ? 2 : 0) : 1;
   const canUndo = !status.over && undoCount > 0 && moveCount >= undoCount;
-  const undoMove = () => canUndo && undo(undoCount);
+  const undoMove = () => {
+    if (canUndo) {
+      setViewingPly(null);
+      undo(undoCount);
+    }
+  };
   const flip = () => setOrientation((current) => (current === 'w' ? 'b' : 'w'));
   const resign = () => {
     if (status.over) return;
@@ -129,7 +157,54 @@ export default function GameScreen({ config, onExit }) {
 
   const toggleAudio = () => setSoundOn(toggleSound());
 
-  useKeyboardShortcuts({ n: newGame, f: flip, 'mod+z': undoMove, m: toggleAudio });
+  const stepPrev = () => {
+    const cur = effectivePly;
+    if (cur > 0) setViewingPly(cur - 1);
+  };
+
+  const stepNext = () => {
+    const cur = effectivePly;
+    if (cur < moveCount) {
+      const next = cur + 1;
+      setViewingPly(next === moveCount ? null : next);
+    }
+  };
+
+  const jumpToLive = () => {
+    setViewingPly(null);
+  };
+
+  const copyFen = () => {
+    const targetFen = activeBoardGame.fen();
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(targetFen).then(() => {
+        showToast('FEN copied to clipboard!');
+      }).catch(() => {
+        showToast('FEN: ' + targetFen.slice(0, 24) + '…');
+      });
+    } else {
+      showToast('FEN: ' + targetFen.slice(0, 24) + '…');
+    }
+  };
+
+  const copyPgn = () => {
+    const currentPgn = game.pgn() || '(No moves)';
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(currentPgn).then(() => {
+        showToast('PGN copied to clipboard!');
+      }).catch(() => {});
+    }
+  };
+
+  useKeyboardShortcuts({
+    n: newGame,
+    f: flip,
+    'mod+z': undoMove,
+    m: toggleAudio,
+    arrowleft: stepPrev,
+    arrowright: stepNext,
+    escape: jumpToLive,
+  });
 
   const nameOf = (color) => {
     if (!isComputer) return color === 'w' ? 'White' : 'Black';
@@ -156,11 +231,19 @@ export default function GameScreen({ config, onExit }) {
       <div className="game-screen">
         <section className="board-column">
           {bar(orientation === 'w' ? 'b' : 'w')}
+          {isReviewing && (
+            <div className="review-banner">
+              <span>Reviewing move {effectivePly} / {moveCount}</span>
+              <button type="button" className="btn btn--ghost btn--small" onClick={jumpToLive}>
+                Return to live ➔
+              </button>
+            </div>
+          )}
           <Board
-            game={game}
+            game={activeBoardGame}
             orientation={orientation}
-            lastMove={lastMove}
-            interactive={!status.over && !computerToMove}
+            lastMove={activeBoardLastMove}
+            interactive={!status.over && !computerToMove && !isReviewing}
             movableColor={playerColor}
             onMove={handleMove}
           />
@@ -186,13 +269,22 @@ export default function GameScreen({ config, onExit }) {
           <div className={`status-card ${status.over ? 'status-card--over' : ''}`}>
             {thinking ? 'Computer is thinking…' : describeStatus(status)}
           </div>
-          <MoveList history={game.history()} />
+          <MoveList
+            history={game.history()}
+            viewingPly={effectivePly}
+            onSelectPly={(ply) => {
+              if (ply >= moveCount) setViewingPly(null);
+              else setViewingPly(ply);
+            }}
+          />
           <GameControls
             onNewGame={newGame}
             onUndo={undoMove}
             onFlip={flip}
             onResign={resign}
-            canUndo={canUndo}
+            onCopyFen={copyFen}
+            onCopyPgn={copyPgn}
+            canUndo={canUndo && !isReviewing}
             canResign={!status.over}
           />
         </aside>
@@ -204,6 +296,7 @@ export default function GameScreen({ config, onExit }) {
           onCancel={() => setPendingPromotion(null)}
         />
       )}
+      {toast && <div className="toast">{toast}</div>}
     </>
   );
 }
