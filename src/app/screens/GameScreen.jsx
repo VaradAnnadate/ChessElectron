@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Board from '../../shared/components/Board.jsx';
 import Clock from '../../shared/components/Clock.jsx';
 import GameControls from '../../shared/components/GameControls.jsx';
+import GameOverModal from '../../shared/components/GameOverModal.jsx';
 import MoveList from '../../shared/components/MoveList.jsx';
 import PlayerBar from '../../shared/components/PlayerBar.jsx';
 import PromotionDialog from '../../shared/components/PromotionDialog.jsx';
@@ -10,6 +11,12 @@ import useChessGame from '../../shared/hooks/useChessGame.js';
 import useKeyboardShortcuts from '../../shared/hooks/useKeyboardShortcuts.js';
 import { DIFFICULTIES } from '../../shared/chess/ai.js';
 import { requestBestMove } from '../../shared/chess/engineClient.js';
+import {
+  BOARD_THEMES,
+  DEFAULT_THEME,
+  getStoredTheme,
+  saveStoredTheme,
+} from '../../shared/chess/themes.js';
 import {
   isSoundEnabled,
   playCaptureSound,
@@ -41,6 +48,11 @@ export default function GameScreen({ config, onExit }) {
   const [soundOn, setSoundOn] = useState(isSoundEnabled);
   const [viewingPly, setViewingPly] = useState(null);
   const [toast, setToast] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    if (config.theme?.id && BOARD_THEMES[config.theme.id]) return config.theme;
+    return BOARD_THEMES[getStoredTheme()] ?? BOARD_THEMES[DEFAULT_THEME];
+  });
   const searchToken = useRef(0);
 
   const status = ended ? { ...boardStatus, over: true, ...ended } : boardStatus;
@@ -136,6 +148,25 @@ export default function GameScreen({ config, onExit }) {
     setEnded(null);
     setPendingPromotion(null);
     setViewingPly(null);
+    setModalOpen(false);
+  };
+
+  useEffect(() => {
+    if (status.over) {
+      const timer = setTimeout(() => setModalOpen(true), 400);
+      return () => clearTimeout(timer);
+    }
+    setModalOpen(false);
+    return undefined;
+  }, [status.over]);
+
+  const cycleTheme = () => {
+    const list = Object.keys(BOARD_THEMES);
+    const nextId = list[(list.indexOf(theme.id) + 1) % list.length];
+    const nextTheme = BOARD_THEMES[nextId];
+    setTheme(nextTheme);
+    saveStoredTheme(nextId);
+    showToast(`Theme: ${nextTheme.label}`);
   };
 
   const undoCount = isComputer ? (game.turn() === playerColor ? 2 : 0) : 1;
@@ -243,6 +274,7 @@ export default function GameScreen({ config, onExit }) {
             game={activeBoardGame}
             orientation={orientation}
             lastMove={activeBoardLastMove}
+            theme={theme}
             interactive={!status.over && !computerToMove && !isReviewing}
             movableColor={playerColor}
             onMove={handleMove}
@@ -258,6 +290,14 @@ export default function GameScreen({ config, onExit }) {
               <button
                 type="button"
                 className="btn btn--ghost btn--icon"
+                onClick={cycleTheme}
+                title={`Theme: ${theme.label} (Click to change)`}
+              >
+                🎨
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost btn--icon"
                 onClick={toggleAudio}
                 title={soundOn ? 'Mute sound (M)' : 'Unmute sound (M)'}
               >
@@ -266,7 +306,12 @@ export default function GameScreen({ config, onExit }) {
               <span className="muted">{MODE_LABELS[config.mode]}</span>
             </div>
           </div>
-          <div className={`status-card ${status.over ? 'status-card--over' : ''}`}>
+          <div
+            className={`status-card ${status.over ? 'status-card--over' : ''}`}
+            onClick={() => status.over && setModalOpen(true)}
+            style={status.over ? { cursor: 'pointer' } : undefined}
+            title={status.over ? 'Click to show game summary' : undefined}
+          >
             {thinking ? 'Computer is thinking…' : describeStatus(status)}
           </div>
           <MoveList
@@ -294,6 +339,18 @@ export default function GameScreen({ config, onExit }) {
           color={game.turn()}
           onSelect={completePromotion}
           onCancel={() => setPendingPromotion(null)}
+        />
+      )}
+      {status.over && modalOpen && (
+        <GameOverModal
+          status={status}
+          isComputer={isComputer}
+          playerColor={playerColor}
+          moveCount={moveCount}
+          onRematch={newGame}
+          onReview={() => setModalOpen(false)}
+          onCopyPgn={copyPgn}
+          onExit={onExit}
         />
       )}
       {toast && <div className="toast">{toast}</div>}

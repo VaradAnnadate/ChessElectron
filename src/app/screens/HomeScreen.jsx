@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DIFFICULTIES } from '../../shared/chess/ai.js';
 import { TIME_CONTROLS } from '../../shared/hooks/useChessClock.js';
+import { BOARD_THEMES, getStoredTheme, saveStoredTheme } from '../../shared/chess/themes.js';
 
 const MODES = [
   { id: 'local', title: 'Local game', description: 'Two players on the same computer.' },
@@ -39,10 +40,16 @@ export default function HomeScreen({ onStart }) {
   const [color, setColor] = useState('w');
   const [difficulty, setDifficulty] = useState('medium');
   const [timeControl, setTimeControl] = useState('none');
+  const [theme, setTheme] = useState(getStoredTheme);
+
+  const handleThemeChange = (id) => {
+    setTheme(id);
+    saveStoredTheme(id);
+  };
 
   const start = () => {
     const playerColor = color === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : color;
-    onStart({ mode, playerColor, difficulty, timeControl });
+    onStart({ mode, playerColor, difficulty, timeControl, theme: BOARD_THEMES[theme] });
   };
 
   return (
@@ -73,6 +80,12 @@ export default function HomeScreen({ onStart }) {
           options={Object.entries(TIME_CONTROLS).map(([id, item]) => ({ id, label: item.label }))}
           value={timeControl}
           onChange={setTimeControl}
+        />
+        <OptionGroup
+          label="Board theme"
+          options={Object.values(BOARD_THEMES).map((t) => ({ id: t.id, label: t.label }))}
+          value={theme}
+          onChange={handleThemeChange}
         />
         {mode === 'computer' && (
           <>

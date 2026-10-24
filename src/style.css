@@ -638,3 +638,125 @@ body {
   color: #111;
   font-weight: 700;
 }
+
+/* Game Over Dialog */
+.game-over-dialog {
+  padding: 0;
+  overflow: hidden;
+  max-width: 380px;
+  width: 90vw;
+  text-align: center;
+}
+
+.game-over-banner {
+  padding: 24px 20px;
+}
+
+.game-over-banner--win {
+  background: linear-gradient(135deg, #2e7d32, #1b5e20);
+  color: #fff;
+}
+
+.game-over-banner--loss {
+  background: linear-gradient(135deg, #c62828, #8e0000);
+  color: #fff;
+}
+
+.game-over-banner--neutral,
+.game-over-banner--white,
+.game-over-banner--black {
+  background: linear-gradient(135deg, #37474f, #263238);
+  color: #fff;
+}
+
+.game-over-title {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.game-over-subtitle {
+  margin: 6px 0 0;
+  opacity: 0.9;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.game-over-score {
+  display: flex;
+  justify-content: center;
+  margin-top: -16px;
+}
+
+.score-badge {
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  padding: 6px 18px;
+  border-radius: 20px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.game-over-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 20px;
+}
+
+.stat-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.game-over-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 20px 20px;
+}
+
+.btn--action {
+  width: 100%;
+}
+
+@keyframes checkPulse {
+  0% {
+    box-shadow: inset 0 0 0 2px rgba(255, 50, 50, 0.8);
+  }
+  50% {
+    box-shadow: inset 0 0 16px 4px rgba(255, 0, 0, 0.9);
+  }
+  100% {
+    box-shadow: inset 0 0 0 2px rgba(255, 50, 50, 0.8);
+  }
+}
+
+.square--check {
+  animation: checkPulse 1.4s infinite ease-in-out;
+}
+
+.square--selected::before {
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 0, 0.85);
+}

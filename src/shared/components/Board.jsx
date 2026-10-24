@@ -13,6 +13,7 @@ export default function Board({
   interactive = true,
   movableColor = null,
   lastMove = null,
+  theme = null,
   onMove,
 }) {
   const [selected, setSelected] = useState(null);
@@ -50,7 +51,17 @@ export default function Board({
   };
 
   return (
-    <div className={`board ${interactive ? '' : 'board--locked'}`}>
+    <div
+      className={`board ${interactive ? '' : 'board--locked'}`}
+      style={
+        theme
+          ? {
+              '--square-light': theme.light,
+              '--square-dark': theme.dark,
+            }
+          : undefined
+      }
+    >
       {squares.map((square, index) => {
         const piece = game.get(square);
         const classes = [
