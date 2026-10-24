@@ -11,6 +11,15 @@ import useKeyboardShortcuts from '../../shared/hooks/useKeyboardShortcuts.js';
 import { DIFFICULTIES } from '../../shared/chess/ai.js';
 import { requestBestMove } from '../../shared/chess/engineClient.js';
 import {
+  isSoundEnabled,
+  playCaptureSound,
+  playCheckSound,
+  playGameOverSound,
+  playMoveSound,
+  playPromotionSound,
+  toggleSound,
+} from '../../shared/sound/chessAudio.js';
+import {
   capturedPieces,
   describeStatus,
   isPromotionMove,
@@ -28,6 +37,7 @@ export default function GameScreen({ config, onExit }) {
   const [orientation, setOrientation] = useState(playerColor ?? 'w');
   const [ended, setEnded] = useState(null);
   const [thinking, setThinking] = useState(false);
+  const [soundOn, setSoundOn] = useState(isSoundEnabled);
   const searchToken = useRef(0);
 
   const status = ended ? { ...boardStatus, over: true, ...ended } : boardStatus;
@@ -36,11 +46,37 @@ export default function GameScreen({ config, onExit }) {
   const moveCount = game.history().length;
   const computerToMove = isComputer && !status.over && game.turn() !== playerColor;
 
+  const handleGameOverSound = (winner) => {
+    playGameOverSound(isComputer ? winner === playerColor : true);
+  };
+
   const clock = useChessClock(config.timeControl, {
     turn: game.turn(),
     running: !status.over && moveCount > 0,
-    onFlag: (color) => setEnded({ winner: color === 'w' ? 'b' : 'w', reason: 'timeout' }),
+    onFlag: (color) => {
+      const winner = color === 'w' ? 'b' : 'w';
+      setEnded({ winner, reason: 'timeout' });
+      handleGameOverSound(winner);
+    },
   });
+
+  const applyMove = (move) => {
+    const res = makeMove(move);
+    if (res) {
+      if (res.isGameOver) {
+        handleGameOverSound(res.color);
+      } else if (res.inCheck) {
+        playCheckSound();
+      } else if (res.promotion) {
+        playPromotionSound();
+      } else if (res.captured) {
+        playCaptureSound();
+      } else {
+        playMoveSound();
+      }
+    }
+    return res;
+  };
 
   useEffect(() => {
     if (!computerToMove) return undefined;
@@ -50,25 +86,25 @@ export default function GameScreen({ config, onExit }) {
       const move = await requestBestMove(fen, config.difficulty);
       if (token !== searchToken.current) return;
       setThinking(false);
-      if (move) makeMove(move);
+      if (move) applyMove(move);
     }, 250);
     return () => {
       clearTimeout(timer);
       searchToken.current += 1;
       setThinking(false);
     };
-  }, [computerToMove, fen, config.difficulty, makeMove]);
+  }, [computerToMove, fen, config.difficulty]);
 
   const handleMove = (from, to) => {
     if (isPromotionMove(game, from, to)) {
       setPendingPromotion({ from, to });
       return;
     }
-    makeMove({ from, to });
+    applyMove({ from, to });
   };
 
   const completePromotion = (piece) => {
-    makeMove({ ...pendingPromotion, promotion: piece });
+    applyMove({ ...pendingPromotion, promotion: piece });
     setPendingPromotion(null);
   };
 
@@ -86,10 +122,14 @@ export default function GameScreen({ config, onExit }) {
   const resign = () => {
     if (status.over) return;
     const loser = isComputer ? playerColor : game.turn();
-    setEnded({ winner: loser === 'w' ? 'b' : 'w', reason: 'resignation' });
+    const winner = loser === 'w' ? 'b' : 'w';
+    setEnded({ winner, reason: 'resignation' });
+    handleGameOverSound(winner);
   };
 
-  useKeyboardShortcuts({ n: newGame, f: flip, 'mod+z': undoMove });
+  const toggleAudio = () => setSoundOn(toggleSound());
+
+  useKeyboardShortcuts({ n: newGame, f: flip, 'mod+z': undoMove, m: toggleAudio });
 
   const nameOf = (color) => {
     if (!isComputer) return color === 'w' ? 'White' : 'Black';
@@ -131,7 +171,17 @@ export default function GameScreen({ config, onExit }) {
             <button type="button" className="btn btn--ghost" onClick={onExit}>
               ← Menu
             </button>
-            <span className="muted">{MODE_LABELS[config.mode]}</span>
+            <div className="side-panel__header-actions">
+              <button
+                type="button"
+                className="btn btn--ghost btn--icon"
+                onClick={toggleAudio}
+                title={soundOn ? 'Mute sound (M)' : 'Unmute sound (M)'}
+              >
+                {soundOn ? '🔊' : '🔇'}
+              </button>
+              <span className="muted">{MODE_LABELS[config.mode]}</span>
+            </div>
           </div>
           <div className={`status-card ${status.over ? 'status-card--over' : ''}`}>
             {thinking ? 'Computer is thinking…' : describeStatus(status)}

@@ -16,7 +16,11 @@ export default function useChessGame(initialFen) {
       try {
         const result = next.move(move);
         setGame(next);
-        return result;
+        return {
+          ...result,
+          inCheck: next.inCheck(),
+          isGameOver: next.isGameOver(),
+        };
       } catch {
         return null;
       }

@@ -409,6 +409,29 @@ body {
   justify-content: space-between;
 }
 
+.side-panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.btn--icon:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.05);
+}
+
 .home {
   display: flex;
   flex-direction: column;
