@@ -109,3 +109,6 @@ npm start
 ## 📄 License
 
 MIT
+## Development
+
+Run `npm run dev` to start Vite + Electron.
