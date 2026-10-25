@@ -1,7 +1,7 @@
 {
   "name": "chess-desktop",
   "version": "1.0.0",
-  "description": "Chess Website desktop application built with Electron and React",
+  "description": "Chess desktop app built with React, Vite, Electron and a Node.js multiplayer server.",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "concurrently -k \"vite --host 127.0.0.1 --port 5173 --strictPort\" \"wait-on tcp:127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 ELECTRON_RUN_AS_NODE= electron .\"",
