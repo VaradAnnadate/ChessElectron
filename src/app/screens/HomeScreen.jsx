@@ -56,6 +56,7 @@ export default function HomeScreen({ onStart }) {
     <div className="home">
       <header className="home__header">
         <h1 className="home__title">♞ Chess</h1>
+        <p className="home__tagline">Play anywhere, anytime.</p>
         <p className="muted">Desktop edition</p>
       </header>
 
