@@ -16,7 +16,7 @@ export function createChessServer({ port = 3001, host = '0.0.0.0', log = console
   const httpServer = http.createServer((req, res) => {
     if (req.url === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, rooms: rooms.size, players: clients.size }));
+      res.end(JSON.stringify({ ok: true, version: "1.0.0", rooms: rooms.size, players: clients.size }));
       return;
     }
     res.writeHead(404);
