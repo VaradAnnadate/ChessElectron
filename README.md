@@ -112,3 +112,5 @@ MIT
 ## Development
 
 Run `npm run dev` to start Vite + Electron.
+
+Built with React, Vite, Electron, and Node.js.
